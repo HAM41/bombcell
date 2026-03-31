@@ -1913,14 +1913,17 @@ def get_quality_unit_type(param, quality_metrics):
     
     unit_type[noise_mask] = 0
     
-    # Non-somatic classification
-    is_non_somatic = (
+    # Non-somatic classification: split into axonal (narrow waveform) and dendritic (peak-dominant)
+    is_axonal = (
         (quality_metrics["troughToPeak2Ratio"] < param["minTroughToPeak2Ratio_nonSomatic"]) &
         (quality_metrics["mainPeak_before_width"] < param["minWidthFirstPeak_nonSomatic"]) &
         (quality_metrics["mainTrough_width"] < param["minWidthMainTrough_nonSomatic"]) &
-        (quality_metrics["peak1ToPeak2Ratio"] > param["maxPeak1ToPeak2Ratio_nonSomatic"]) |
+        (quality_metrics["peak1ToPeak2Ratio"] > param["maxPeak1ToPeak2Ratio_nonSomatic"])
+    )
+    is_dendritic = (
         (quality_metrics["mainPeakToTroughRatio"] > param["maxMainPeakToTroughRatio_nonSomatic"])
     )
+    is_non_somatic = is_axonal | is_dendritic
     
     # MUA classification
     mua_mask = np.isnan(unit_type) & (
@@ -1957,11 +1960,20 @@ def get_quality_unit_type(param, quality_metrics):
         unit_type[mua_non_somatic] = 4
     else:
         unit_type[(unit_type != 0) & is_non_somatic] = 3
-    
+
+    # Optionally split non-somatic good into dendritic vs axonal
+    if param.get("splitDendriticAxonal_NonSomatic", False) and param["splitGoodAndMua_NonSomatic"]:
+        dendritic_good = (unit_type == 3) & is_dendritic & ~is_axonal
+        axonal_good = (unit_type == 3) & ~dendritic_good
+        unit_type[dendritic_good] = 5
+        unit_type[axonal_good] = 6
+
     # Create string labels
     labels = {0: "NOISE", 1: "GOOD", 2: "MUA",
              3: "NON-SOMA GOOD" if param["splitGoodAndMua_NonSomatic"] else "NON-SOMA",
-             4: "NON-SOMA MUA"}
+             4: "NON-SOMA MUA",
+             5: "NON-SOMA GOOD DENDRITIC",
+             6: "NON-SOMA GOOD AXONAL"}
 
     unit_type_string = np.full(n_units, "", dtype=object)
     for code, label in labels.items():

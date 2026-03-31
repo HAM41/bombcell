@@ -107,7 +107,8 @@ def get_default_parameters(
         "nChannelsIsoDist": 4,  # Number of nearby channels to use in distance metric computation
 
         # Quality metric classification parameters
-        "splitGoodAndMua_NonSomatic": False,  # whether to classify non-somatic units
+        "splitGoodAndMua_NonSomatic": False,  # whether to split non-somatic into NON-SOMA GOOD / NON-SOMA MUA
+        "splitDendriticAxonal_NonSomatic": False,  # whether to further split NON-SOMA GOOD into DENDRITIC / AXONAL
         ## Waveform-based
         "maxNPeaks": 2,  # maximum number of peaks
         "maxNTroughs": 1,  # maximum number of troughs
